@@ -105,15 +105,6 @@ pub fn negative_delay_test() {
   err |> should.equal(badarg)
 }
 
-pub fn receive_test() {
-  let subject = process.new_subject()
-  use scheduler <- tickle.simulate()
-
-  tickle.send_after(scheduler, subject, 10, "wibble")
-  let assert Ok("wibble") = tickle.receive(scheduler, subject, 10)
-  let assert Error(Nil) = tickle.receive(scheduler, subject, 10)
-}
-
 pub fn native_scheduler_smoke_test() {
   let subject = process.new_subject()
   let scheduler = tickle.native_scheduler()
@@ -125,12 +116,11 @@ pub fn native_scheduler_smoke_test() {
   let assert Cancelled(time) = tickle.cancel_timer(timer3)
   { time > 20 } |> should.be_true()
 
-  let assert Error(Nil) = tickle.receive(scheduler, subject, 0)
-    as "shouldn't receive yet"
-  let assert Ok("wibble") = tickle.receive(scheduler, subject, 15)
+  let assert Error(Nil) = process.receive(subject, 0) as "shouldn't receive yet"
+  let assert Ok("wibble") = process.receive(subject, 15)
 
   let assert TimerNotFound = tickle.cancel_timer(timer1)
 
   tickle.cancel_timer(timer2)
-  let assert Error(Nil) = tickle.receive(scheduler, subject, 15)
+  let assert Error(Nil) = process.receive(subject, 15)
 }
