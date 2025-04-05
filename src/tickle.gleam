@@ -30,7 +30,7 @@ pub type NotifyError {
 /// Send a message over a channel after a specified number of milliseconds.
 /// 
 /// If the scheduler is a simulated scheduler,
-/// the message will not be sent until `advance` is called,
+/// the message will not be sent until [`advance`](#advance) is called,
 /// even if the delay is zero.
 /// Otherwise should behave the same as `process.send_after`.
 pub fn send_after(
@@ -48,7 +48,7 @@ pub fn send_after(
   }
 }
 
-/// Cancel a given timer, causing it not to trigger if it has not done already.
+/// Cancel a given timer, causing it not to trigger if it has not done so already.
 ///
 /// Should behave the same as `process.cancel_timer`
 pub fn cancel_timer(timer: Timer) -> Cancelled {
@@ -88,7 +88,7 @@ pub fn advance(scheduler: Scheduler, amount: Int) -> Nil {
   }
 }
 
-/// Wait for another process to call `notify` on this scheduler
+/// Wait for another process to call [`notify`](#notify) on this scheduler
 /// with the given value, after running the given trigger.
 /// Only one wait can be active at once on the same value.
 /// Trying to wait for the same value from multiple processes
@@ -117,7 +117,8 @@ pub fn notify(scheduler: Scheduler, value: a) -> Nil {
   }
 }
 
-/// Executes the given function, and then calls `notify` with the given arguments.
+/// Executes the given function, and then calls [`notify`](#notify)
+/// with the given arguments.
 /// Example:
 /// ```gleam
 /// use <- tickle.deferred_notify(scheduler, value)
