@@ -1,18 +1,26 @@
 import gleam/erlang/process.{type Subject}
+import gleam/option.{type Option, None, Some}
 
 type Table
+
+type ActionKey
 
 type ScheduledAction =
   fn() -> Nil
 
 pub opaque type Timer {
   NativeTimer(process.Timer)
-  SimulatedTimer(Int)
+  SimulatedTimer(Table, ActionKey)
 }
 
 pub opaque type Scheduler {
   NativeScheduler
   SimulatedScheduler(Table)
+}
+
+pub type Cancelled {
+  TimerNotFound
+  Cancelled(time_remaining: Int)
 }
 
 pub fn send_after(
@@ -25,8 +33,23 @@ pub fn send_after(
     NativeScheduler -> NativeTimer(process.send_after(subject, delay, message))
     SimulatedScheduler(table) -> {
       let id = add(table, delay, fn() { process.send(subject, message) })
-      SimulatedTimer(id)
+      SimulatedTimer(table, id)
     }
+  }
+}
+
+pub fn cancel_timer(timer: Timer) -> Cancelled {
+  case timer {
+    NativeTimer(timer) ->
+      case process.cancel_timer(timer) {
+        process.Cancelled(time_left) -> Cancelled(time_left)
+        process.TimerNotFound -> TimerNotFound
+      }
+    SimulatedTimer(table, id) ->
+      case cancel_timer_ffi(table, id) {
+        None -> TimerNotFound
+        Some(time_left) -> Cancelled(time_left)
+      }
   }
 }
 
@@ -54,13 +77,16 @@ pub fn advance(scheduler: Scheduler, amount: Int) -> Nil {
 }
 
 @external(erlang, "tickle_ffi", "add")
-fn add(table: Table, delay: Int, action: ScheduledAction) -> Int
+fn add(table: Table, delay: Int, action: ScheduledAction) -> ActionKey
 
 @external(erlang, "tickle_ffi", "new_table")
 fn new_table() -> Result(Table, Nil)
 
 @external(erlang, "tickle_ffi", "advance_ffi")
 fn advance_ffi(table: Table, amount: Int) -> Nil
+
+@external(erlang, "tickle_ffi", "cancel_timer_ffi")
+fn cancel_timer_ffi(table: Table, id: ActionKey) -> Option(Int)
 
 @external(erlang, "ets", "delete")
 fn drop_table(table: Table) -> Nil
