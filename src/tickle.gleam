@@ -91,6 +91,8 @@ pub fn advance(scheduler: Scheduler, amount: Int) -> Nil {
 /// Wait for another process to call `notify` on this scheduler
 /// with the given value, after running the given trigger.
 /// Only one wait can be active at once on the same value.
+/// Trying to wait for the same value from multiple processes
+/// is suspect to race conditions.
 /// Returns the value of the trigger, or an error.
 /// Will panic if called on a native scheduler.
 pub fn wait_for_notify(

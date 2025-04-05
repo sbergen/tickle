@@ -52,26 +52,39 @@ execute(Table, TimeNow) ->
 
 wait_for_notify(Pid, Table, Value, Timeout, Trigger) ->
     Key = ?notify_key(Value),
-    case ets:insert_new(Table, {Key, {Pid, Value}}) of
+    TimeoutError = {error, notify_timed_out},
+    ReturnError = fun() -> TimeoutError end,
+    case ets:insert_new(Table, {Key, Pid}) of
         true ->
             Result = Trigger(),
-            ReturnValue =
-                receive
-                    Key ->
-                        {ok, Result}
-                after Timeout ->
-                    {error, notify_timed_out}
+            RemoveEntry =
+                fun() ->
+                   % If the take fails, it means that there was a race with notify,
+                   % so we try to receive immediately one more time.
+                   case ets:take(Table, Key) of
+                       [] ->
+                           wait_for_notify_or(Key, Result, Timeout, ReturnError);
+                       _ ->
+                           TimeoutError
+                   end
                 end,
-            ets:delete(Table, Key),
-            ReturnValue;
+            wait_for_notify_or(Key, Result, Timeout, RemoveEntry);
         false ->
             {error, already_waiting}
     end.
 
+wait_for_notify_or(Key, Result, Timeout, OnTimeout) ->
+    receive
+        Key ->
+            {ok, Result}
+    after Timeout ->
+        OnTimeout()
+    end.
+
 notify(Table, Value) ->
     Key = ?notify_key(Value),
-    case ets:lookup(Table, Key) of
-        [{_, {Pid, Value}}] ->
+    case ets:take(Table, Key) of
+        [{_, Pid}] ->
             Pid ! Key;
         _ ->
             nil
