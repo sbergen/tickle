@@ -104,3 +104,23 @@ pub fn negative_delay_test() {
     erlang.rescue(fn() { tickle.send_after(scheduler, subject, -1, "wibble") })
   err |> should.equal(badarg)
 }
+
+pub fn native_scheduler_smoke_test() {
+  let subject = process.new_subject()
+  let scheduler = tickle.native_scheduler()
+
+  let timer1 = tickle.send_after(scheduler, subject, 10, "wibble")
+  let timer2 = tickle.send_after(scheduler, subject, 20, "wobble")
+  let timer3 = tickle.send_after(scheduler, subject, 30, "")
+
+  let assert Cancelled(time) = tickle.cancel_timer(timer3)
+  { time > 20 } |> should.be_true()
+
+  let assert Error(Nil) = process.receive(subject, 0) as "shouldn't receive yet"
+  let assert Ok("wibble") = process.receive(subject, 15)
+
+  let assert TimerNotFound = tickle.cancel_timer(timer1)
+
+  tickle.cancel_timer(timer2)
+  let assert Error(Nil) = process.receive(subject, 15)
+}
