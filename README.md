@@ -15,6 +15,7 @@ This allows writing faster and more deterministic tests
 for anything requiring delays.
 
 ```gleam
+import gleam/erlang/process
 import tickle
 
 pub fn main() {
