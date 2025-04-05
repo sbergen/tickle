@@ -70,7 +70,7 @@ pub fn native_scheduler() -> Scheduler {
 /// Runs an operation using a simulated scheduler,
 /// and tears down the setup after the operation.
 pub fn simulate(operation: fn(Scheduler) -> a) -> a {
-  let assert Ok(table) = new_table()
+  let table = new_table()
   let scheduler = SimulatedScheduler(table)
 
   let result = operation(scheduler)
@@ -133,7 +133,7 @@ pub fn deferred_notify(scheduler: Scheduler, value: a, after: fn() -> b) -> b {
 fn add(table: Table, delay: Int, action: ScheduledAction) -> ActionKey
 
 @external(erlang, "tickle_ffi", "new_table")
-fn new_table() -> Result(Table, Nil)
+fn new_table() -> Table
 
 @external(erlang, "tickle_ffi", "advance")
 fn advance_ffi(table: Table, amount: Int) -> Nil

@@ -7,16 +7,11 @@
 -define(notify_key(Value), {tickle_notify, Value}).
 
 new_table() ->
-    try
-        Table = ets:new(tickle_actions, [ordered_set, public]),
-        % Use tuples instead of atoms, so that first works correctly
-        ets:insert(Table, {?ID_KEY, 0}),
-        ets:insert(Table, {?TIME_KEY, 0}),
-        {ok, Table}
-    catch
-        error:badarg ->
-            {error, nil}
-    end.
+    Table = ets:new(tickle_actions, [ordered_set, public]),
+    % Use tuples instead of atoms, so that first works correctly
+    ets:insert(Table, {?ID_KEY, 0}),
+    ets:insert(Table, {?TIME_KEY, 0}),
+    Table.
 
 add(Table, Delay, Action) when Delay >= 0 ->
     Id = ets:update_counter(Table, ?ID_KEY, 1),
