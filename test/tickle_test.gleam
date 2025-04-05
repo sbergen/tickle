@@ -162,8 +162,21 @@ pub fn wait_for_notify_again_test() {
 
   tickle.wait_for_notify(scheduler, "foo", 10, fn() {
     let assert Error(AlreadyWaiting) =
-      tickle.wait_for_notify(scheduler, "bar", 10, fn() { Nil })
+      tickle.wait_for_notify(scheduler, "foo", 10, fn() { Nil })
   })
+}
+
+pub fn wait_for_notify_twice_test() {
+  use scheduler <- tickle.simulate()
+
+  let assert Ok(_) =
+    tickle.wait_for_notify(scheduler, "foo", 10, fn() {
+      let assert Ok(_) =
+        tickle.wait_for_notify(scheduler, "bar", 10, fn() {
+          tickle.notify(scheduler, "foo")
+          tickle.notify(scheduler, "bar")
+        })
+    })
 }
 
 pub fn notify_without_wait_test() {

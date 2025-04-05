@@ -4,7 +4,7 @@
 
 -define(ID_KEY, {place_last, tickle_id}).
 -define(TIME_KEY, {place_last, tickle_time}).
--define(NOTIFY_KEY, {place_last, tickle_notify}).
+-define(notify_key(Value), {tickle_notify, Value}).
 
 new_table() ->
     try
@@ -51,26 +51,28 @@ execute(Table, TimeNow) ->
     end.
 
 wait_for_notify(Pid, Table, Value, Timeout, Trigger) ->
-    case ets:insert_new(Table, {?NOTIFY_KEY, {Pid, Value}}) of
+    Key = ?notify_key(Value),
+    case ets:insert_new(Table, {Key, {Pid, Value}}) of
         true ->
             Result = Trigger(),
             ReturnValue =
                 receive
-                    ?NOTIFY_KEY ->
+                    Key ->
                         {ok, Result}
                 after Timeout ->
                     {error, notify_timed_out}
                 end,
-            ets:delete(Table, ?NOTIFY_KEY),
+            ets:delete(Table, Key),
             ReturnValue;
         false ->
             {error, already_waiting}
     end.
 
 notify(Table, Value) ->
-    case ets:lookup(Table, ?NOTIFY_KEY) of
+    Key = ?notify_key(Value),
+    case ets:lookup(Table, Key) of
         [{_, {Pid, Value}}] ->
-            Pid ! ?NOTIFY_KEY;
+            Pid ! Key;
         _ ->
             nil
     end.
