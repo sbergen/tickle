@@ -37,8 +37,8 @@ pub fn send_after(
   case scheduler {
     NativeScheduler -> NativeTimer(process.send_after(subject, delay, message))
     SimulatedScheduler(table) -> {
-      let id = add(table, delay, fn() { process.send(subject, message) })
-      SimulatedTimer(table, id)
+      let key = add(table, delay, fn() { process.send(subject, message) })
+      SimulatedTimer(table, key)
     }
   }
 }
@@ -49,8 +49,8 @@ pub fn send_after(
 pub fn cancel_timer(timer: Timer) -> Cancelled {
   case timer {
     NativeTimer(timer) -> process.cancel_timer(timer)
-    SimulatedTimer(table, id) ->
-      case cancel_timer_ffi(table, id) {
+    SimulatedTimer(table, key) ->
+      case cancel_timer_ffi(table, key) {
         None -> process.TimerNotFound
         Some(time_left) -> process.Cancelled(time_left)
       }
@@ -93,7 +93,7 @@ fn new_table() -> Result(Table, Nil)
 fn advance_ffi(table: Table, amount: Int) -> Nil
 
 @external(erlang, "tickle_ffi", "cancel_timer")
-fn cancel_timer_ffi(table: Table, id: ActionKey) -> Option(Int)
+fn cancel_timer_ffi(table: Table, key: ActionKey) -> Option(Int)
 
 @external(erlang, "ets", "delete")
 fn drop_table(table: Table) -> Nil
