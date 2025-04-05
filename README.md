@@ -21,6 +21,9 @@ pub fn main() {
   // Creates a scheduler that can simulate delays
   use scheduler <- tickle.simulate()
 
+  // To use real scheduling, do this instead:
+  // let scheduler = tickle.native_scheduler()
+
   // Send some messages with delays
   let subject = process.new_subject()
   tickle.send_after(scheduler, subject, 1, "wibble")
