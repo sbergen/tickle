@@ -89,10 +89,10 @@ fn add(table: Table, delay: Int, action: ScheduledAction) -> ActionKey
 @external(erlang, "tickle_ffi", "new_table")
 fn new_table() -> Result(Table, Nil)
 
-@external(erlang, "tickle_ffi", "advance_ffi")
+@external(erlang, "tickle_ffi", "advance")
 fn advance_ffi(table: Table, amount: Int) -> Nil
 
-@external(erlang, "tickle_ffi", "cancel_timer_ffi")
+@external(erlang, "tickle_ffi", "cancel_timer")
 fn cancel_timer_ffi(table: Table, id: ActionKey) -> Option(Int)
 
 @external(erlang, "ets", "delete")

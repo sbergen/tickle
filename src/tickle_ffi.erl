@@ -1,6 +1,6 @@
 -module(tickle_ffi).
 
--export([new_table/0, add/3, advance_ffi/2, cancel_timer_ffi/2]).
+-export([new_table/0, add/3, advance/2, cancel_timer/2]).
 
 -define(ID_KEY, {place_last, tickle_id}).
 -define(TIME_KEY, {place_last, tickle_time}).
@@ -24,7 +24,7 @@ add(Table, Delay, Action) when Delay >= 0 ->
     Key;
 add(_Table, _Delay, _Action) -> error(badarg).
 
-cancel_timer_ffi(Table, Key) ->
+cancel_timer(Table, Key) ->
     case ets:take(Table, Key) of
         [_] ->
             [{_, TimeNow}] = ets:lookup(Table, ?TIME_KEY),
@@ -33,7 +33,7 @@ cancel_timer_ffi(Table, Key) ->
         _ -> none
     end.
 
-advance_ffi(Table, Amount) ->
+advance(Table, Amount) ->
     execute(Table, ets:update_counter(Table, ?TIME_KEY, Amount)).
 
 execute(Table, TimeNow) ->
