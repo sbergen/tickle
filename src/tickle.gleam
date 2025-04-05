@@ -83,6 +83,23 @@ pub fn advance(scheduler: Scheduler, amount: Int) -> Nil {
   }
 }
 
+/// Convenience function similar to `process.receive`,
+/// which will advance a simulated scheduler the given timeout amount,
+/// or just call `process.receive` if the scheduler is not simulated.
+pub fn receive(
+  scheduler: Scheduler,
+  from subject: Subject(message),
+  within timeout: Int,
+) -> Result(message, Nil) {
+  case scheduler {
+    NativeScheduler -> process.receive(subject, timeout)
+    SimulatedScheduler(table) -> {
+      advance_ffi(table, timeout)
+      process.receive(subject, 0)
+    }
+  }
+}
+
 @external(erlang, "tickle_ffi", "add")
 fn add(table: Table, delay: Int, action: ScheduledAction) -> ActionKey
 
