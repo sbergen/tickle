@@ -47,7 +47,7 @@ execute(Table, TimeNow) ->
 
 wait_for_notify(Pid, Table, Value, Timeout, Trigger) ->
     Key = ?notify_key(Value),
-    TimeoutError = {error, notify_timed_out},
+    TimeoutError = {error, wait_timed_out},
     ReturnError = fun() -> TimeoutError end,
     case ets:insert_new(Table, {Key, Pid}) of
         true ->

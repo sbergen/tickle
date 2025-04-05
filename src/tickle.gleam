@@ -22,8 +22,11 @@ pub opaque type Scheduler {
   SimulatedScheduler(Table)
 }
 
-pub type NotifyError {
-  NotifyTimedOut
+/// An error that can occur when waiting for a notification.
+pub type WaitError {
+  /// [`notify`](#notify) was not called on time.
+  WaitTimedOut
+  /// Someone is already waiting for the same value on the scheduler.
   AlreadyWaiting
 }
 
@@ -100,7 +103,7 @@ pub fn wait_for_notify(
   value: a,
   timeout: Int,
   trigger: fn() -> b,
-) -> Result(b, NotifyError) {
+) -> Result(b, WaitError) {
   case scheduler {
     NativeScheduler -> panic as "wait_for_notify on native scheduler"
     SimulatedScheduler(table) ->
@@ -149,7 +152,7 @@ fn wait_for_notify_ffi(
   value: a,
   timeout: Int,
   trigger: fn() -> b,
-) -> Result(b, NotifyError)
+) -> Result(b, WaitError)
 
 @external(erlang, "tickle_ffi", "notify")
 fn notify_ffi(table: Table, value: a) -> Nil

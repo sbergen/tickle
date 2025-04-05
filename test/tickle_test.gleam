@@ -5,7 +5,7 @@ import gleam/erlang/atom
 import gleam/erlang/process.{Cancelled, TimerNotFound}
 import gleeunit
 import gleeunit/should
-import tickle.{AlreadyWaiting, NotifyTimedOut}
+import tickle.{AlreadyWaiting, WaitTimedOut}
 
 pub fn main() {
   gleeunit.main()
@@ -148,10 +148,10 @@ pub fn wait_for_notify_success_test() {
 pub fn wait_for_notify_timeout_test() {
   use scheduler <- tickle.simulate()
 
-  let assert Error(NotifyTimedOut) =
+  let assert Error(WaitTimedOut) =
     tickle.wait_for_notify(scheduler, "foo", 10, fn() { Nil })
 
-  let assert Error(NotifyTimedOut) =
+  let assert Error(WaitTimedOut) =
     tickle.wait_for_notify(scheduler, "foo", 10, fn() {
       process.start(fn() { tickle.notify(scheduler, "bar") }, linked: True)
     })
