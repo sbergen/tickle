@@ -1,4 +1,4 @@
-import gleam/erlang/process.{type Subject}
+import gleam/erlang/process.{type Cancelled, type Subject}
 import gleam/option.{type Option, None, Some}
 
 type Table
@@ -8,21 +8,26 @@ type ActionKey
 type ScheduledAction =
   fn() -> Nil
 
+/// Represents either a simulated, or native Erlang timer,
+/// similar to `process.Timer`.
 pub opaque type Timer {
   NativeTimer(process.Timer)
   SimulatedTimer(Table, ActionKey)
 }
 
+/// Represents either a simulated or native scheduler,
+/// for scheduling `send_after` calls.
 pub opaque type Scheduler {
   NativeScheduler
   SimulatedScheduler(Table)
 }
 
-pub type Cancelled {
-  TimerNotFound
-  Cancelled(time_remaining: Int)
-}
-
+/// Send a message over a channel after a specified number of milliseconds.
+/// 
+/// If the scheduler is a simulated scheduler,
+/// the message will not be sent until `advance` is called,
+/// even if the delay is zero.
+/// Otherwise should behave the same as `process.send_after`.
 pub fn send_after(
   scheduler: Scheduler,
   subject: Subject(a),
@@ -38,25 +43,27 @@ pub fn send_after(
   }
 }
 
+/// Cancel a given timer, causing it not to trigger if it has not done already.
+///
+/// Should behave the same as `process.cancel_timer`
 pub fn cancel_timer(timer: Timer) -> Cancelled {
   case timer {
-    NativeTimer(timer) ->
-      case process.cancel_timer(timer) {
-        process.Cancelled(time_left) -> Cancelled(time_left)
-        process.TimerNotFound -> TimerNotFound
-      }
+    NativeTimer(timer) -> process.cancel_timer(timer)
     SimulatedTimer(table, id) ->
       case cancel_timer_ffi(table, id) {
-        None -> TimerNotFound
-        Some(time_left) -> Cancelled(time_left)
+        None -> process.TimerNotFound
+        Some(time_left) -> process.Cancelled(time_left)
       }
   }
 }
 
+/// Constructs a native scheduler, which will use standard Erlang scheduling.
 pub fn native_scheduler() -> Scheduler {
   NativeScheduler
 }
 
+/// Runs an operation using a simulated scheduler,
+/// and tears down the setup after the operation.
 pub fn simulate(operation: fn(Scheduler) -> a) -> a {
   let assert Ok(table) = new_table()
   let scheduler = SimulatedScheduler(table)

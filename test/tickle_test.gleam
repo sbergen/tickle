@@ -1,10 +1,10 @@
 import gleam/dynamic
 import gleam/erlang
 import gleam/erlang/atom
-import gleam/erlang/process
+import gleam/erlang/process.{Cancelled, TimerNotFound}
 import gleeunit
 import gleeunit/should
-import tickle.{Cancelled, TimerNotFound}
+import tickle
 
 pub fn main() {
   gleeunit.main()
@@ -53,7 +53,7 @@ pub fn cancel_timer_not_found_test() {
   // Check native functionality
   let timer = process.send_after(subject, 1, "wibble")
   process.sleep(1)
-  let assert process.TimerNotFound = process.cancel_timer(timer)
+  let assert TimerNotFound = process.cancel_timer(timer)
 
   // Now check tickle
   use scheduler <- tickle.simulate()
@@ -76,7 +76,7 @@ pub fn zero_delay_test() {
 
   // Check native functionality
   let timer = process.send_after(subject, 0, "wibble")
-  let assert process.Cancelled(0) = process.cancel_timer(timer)
+  let assert Cancelled(0) = process.cancel_timer(timer)
   let assert Error(Nil) = process.receive(subject, 0)
     as "Assuming zero delay timer to be cancelable on native implementation"
 
