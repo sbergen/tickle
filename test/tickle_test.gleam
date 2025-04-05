@@ -105,6 +105,28 @@ pub fn negative_delay_test() {
   err |> should.equal(badarg)
 }
 
+pub fn multi_process_test() {
+  use scheduler <- tickle.simulate()
+  let subject = process.new_subject()
+
+  process.start(
+    fn() {
+      process.send(subject, "spawned")
+      tickle.send_after(scheduler, subject, 10, "hello from other process")
+    },
+    linked: True,
+  )
+
+  let assert Ok("spawned") = process.receive(subject, 10)
+    as "expected process to spawn"
+
+  let assert Error(Nil) = process.receive(subject, 0)
+    as "advance hasn't been called"
+
+  tickle.advance(scheduler, 10)
+  let assert Ok("hello from other process") = process.receive(subject, 0)
+}
+
 pub fn native_scheduler_smoke_test() {
   let subject = process.new_subject()
   let scheduler = tickle.native_scheduler()

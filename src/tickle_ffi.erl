@@ -7,7 +7,7 @@
 
 new_table() ->
     try
-        Table = ets:new(tickle_actions, [ordered_set]),
+        Table = ets:new(tickle_actions, [ordered_set, public]),
         % Use tuples instead of atoms, so that first works correctly
         ets:insert(Table, {?ID_KEY, 0}),
         ets:insert(Table, {?TIME_KEY, 0}),
