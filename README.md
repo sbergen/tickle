@@ -44,6 +44,15 @@ pub fn main() {
 }
 ```
 
+Additionally, since not all delays in asynchronous programs are caused by
+delayed messages, `tickle` provides a mechanism to define synchronization points
+that can be waited on:
+* `wait_for_notify` can be used to safely trigger an action, and
+* `notify` can be used from within the action to let the wait continue.
+
+`wait_for_notify` is only available with a simulated scheduler,
+and `notify` will be (nearly) a no-op with a native scheduler.
+
 <!--
 Further documentation can be found at <https://hexdocs.pm/tickle>.
 -->
