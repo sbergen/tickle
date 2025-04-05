@@ -16,12 +16,13 @@ new_table() ->
         error:badarg -> {error, nil}
     end.
 
-add(Table, Delay, Action) ->
+add(Table, Delay, Action) when Delay >= 0 ->
     Id = ets:update_counter(Table, ?ID_KEY, 1),
     [{_, TimeNow}] = ets:lookup(Table, ?TIME_KEY),
     Key = { TimeNow + Delay, Id },
     ets:insert(Table, { Key, Action }),
-    Key.
+    Key;
+add(_Table, _Delay, _Action) -> error(badarg).
 
 cancel_timer_ffi(Table, Key) ->
     case ets:take(Table, Key) of
@@ -29,7 +30,7 @@ cancel_timer_ffi(Table, Key) ->
             [{_, TimeNow}] = ets:lookup(Table, ?TIME_KEY),
             { Time, _ } = Key,
             { some, Time - TimeNow };
-        _ -> { none }
+        _ -> none
     end.
 
 advance_ffi(Table, Amount) ->
