@@ -4,7 +4,7 @@ import gleam/erlang/atom
 import gleam/erlang/process.{Cancelled, TimerNotFound}
 import gleeunit
 import gleeunit/should
-import tickle
+import tickle.{AlreadyWaiting, NotifyTimedOut}
 
 pub fn main() {
   gleeunit.main()
@@ -125,6 +125,44 @@ pub fn multi_process_test() {
 
   tickle.advance(scheduler, 10)
   let assert Ok("hello from other process") = process.receive(subject, 0)
+}
+
+pub fn wait_for_notify_success_test() {
+  use scheduler <- tickle.simulate()
+
+  let assert Ok(42) =
+    tickle.wait_for_notify(scheduler, "foo", 10, fn() {
+      process.start(fn() { tickle.notify(scheduler, "foo") }, linked: True)
+      42
+    })
+}
+
+pub fn wait_for_notify_timeout_test() {
+  use scheduler <- tickle.simulate()
+
+  let assert Error(NotifyTimedOut) =
+    tickle.wait_for_notify(scheduler, "foo", 10, fn() { Nil })
+
+  let assert Error(NotifyTimedOut) =
+    tickle.wait_for_notify(scheduler, "foo", 10, fn() {
+      process.start(fn() { tickle.notify(scheduler, "bar") }, linked: True)
+    })
+}
+
+pub fn wait_for_notify_again_test() {
+  use scheduler <- tickle.simulate()
+
+  tickle.wait_for_notify(scheduler, "foo", 10, fn() {
+    let assert Error(AlreadyWaiting) =
+      tickle.wait_for_notify(scheduler, "bar", 10, fn() { Nil })
+  })
+}
+
+pub fn notify_without_wait_test() {
+  use scheduler <- tickle.simulate()
+
+  // This shouldn't cause an error
+  tickle.notify(scheduler, 42)
 }
 
 pub fn native_scheduler_smoke_test() {

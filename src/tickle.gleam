@@ -22,6 +22,11 @@ pub opaque type Scheduler {
   SimulatedScheduler(Table)
 }
 
+pub type NotifyError {
+  NotifyTimedOut
+  AlreadyWaiting
+}
+
 /// Send a message over a channel after a specified number of milliseconds.
 /// 
 /// If the scheduler is a simulated scheduler,
@@ -83,6 +88,45 @@ pub fn advance(scheduler: Scheduler, amount: Int) -> Nil {
   }
 }
 
+/// Wait for another process to call `notify` on this scheduler
+/// with the given value, after running the given trigger.
+/// Only one wait can be active at once.
+/// Returns the value of the trigger, or an error.
+/// Will panic if called on a native scheduler.
+pub fn wait_for_notify(
+  scheduler: Scheduler,
+  value: a,
+  timeout: Int,
+  trigger: fn() -> b,
+) -> Result(b, NotifyError) {
+  case scheduler {
+    NativeScheduler -> panic as "wait_for_notify on native scheduler"
+    SimulatedScheduler(table) ->
+      wait_for_notify_ffi(process.self(), table, value, timeout, trigger)
+  }
+}
+
+/// Notifies any active waits on the given value on a simulated scheduler.
+/// Does nothing on a native scheduler.
+pub fn notify(scheduler: Scheduler, value: a) -> Nil {
+  case scheduler {
+    NativeScheduler -> Nil
+    SimulatedScheduler(table) -> notify_ffi(table, value)
+  }
+}
+
+/// Executes the given function, and then calls `notify` with the given arguments.
+/// Example:
+/// ```gleam
+/// use <- tickle.deferred_notify(scheduler, value)
+/// use_value(value)
+/// ```
+pub fn deferred_notify(scheduler: Scheduler, value: a, after: fn() -> b) -> b {
+  let result = after()
+  notify(scheduler, value)
+  result
+}
+
 @external(erlang, "tickle_ffi", "add")
 fn add(table: Table, delay: Int, action: ScheduledAction) -> ActionKey
 
@@ -94,6 +138,18 @@ fn advance_ffi(table: Table, amount: Int) -> Nil
 
 @external(erlang, "tickle_ffi", "cancel_timer")
 fn cancel_timer_ffi(table: Table, key: ActionKey) -> Option(Int)
+
+@external(erlang, "tickle_ffi", "wait_for_notify")
+fn wait_for_notify_ffi(
+  pid: process.Pid,
+  table: Table,
+  value: a,
+  timeout: Int,
+  trigger: fn() -> b,
+) -> Result(b, NotifyError)
+
+@external(erlang, "tickle_ffi", "notify")
+fn notify_ffi(table: Table, value: a) -> Nil
 
 @external(erlang, "ets", "delete")
 fn drop_table(table: Table) -> Nil

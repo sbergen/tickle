@@ -1,9 +1,16 @@
 -module(tickle_ffi).
 
--export([new_table/0, add/3, advance/2, cancel_timer/2]).
+-export([
+    new_table/0,
+    add/3,
+    advance/2,
+    cancel_timer/2,
+    wait_for_notify/5,
+    notify/2]).
 
 -define(ID_KEY, {place_last, tickle_id}).
 -define(TIME_KEY, {place_last, tickle_time}).
+-define(NOTIFY_KEY, {place_last, tickle_notify}).
 
 new_table() ->
     try
@@ -42,5 +49,26 @@ execute(Table, TimeNow) ->
             [{_, Action}] = ets:take(Table, Key),
             Action(),
             execute(Table, TimeNow);
+        _ -> nil
+    end.
+
+wait_for_notify(Pid, Table, Value, Timeout, Trigger) ->
+    case ets:insert_new(Table, { ?NOTIFY_KEY, { Pid, Value }}) of
+        true ->
+            Result = Trigger(),
+            ReturnValue = receive
+                ?NOTIFY_KEY -> {ok, Result}
+            after Timeout ->
+                {error, notify_timed_out}
+            end,
+            ets:delete(Table, ?NOTIFY_KEY),
+            ReturnValue;
+        false ->
+            {error, already_waiting}
+    end.
+
+notify(Table, Value) ->
+    case ets:lookup(Table, ?NOTIFY_KEY) of
+        [{_, {Pid, Value}}] -> Pid ! ?NOTIFY_KEY;
         _ -> nil
     end.
